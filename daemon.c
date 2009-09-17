@@ -17,6 +17,23 @@
 
 #define MAX_PAYLOAD 1024  /* maximum payload size*/
 
+/* Definitions thare are ordinarily in <arpa/nameser.h>
+ * (or <arpa/nameser8_compat.h, included by <arpa/nameser.h> if BIND_8_COMPAT
+ * is defined), but not in android:
+ */
+#ifndef PACKETSZ
+#define PACKETSZ 512
+#endif
+#ifndef C_IN
+#define C_IN 1
+#endif
+#ifndef T_A
+#define T_A 1
+#endif
+#ifndef T_AAAA
+#define T_AAAA 28
+#endif
+
 int sock_fd;
 
 #define MAX_NAME_LEN 254
