@@ -15,6 +15,10 @@
 #include "dns.h"
 #include "namestacknl.h"
 
+#ifndef NETLINK_NAME_ORIENTED_STACK
+#define NETLINK_NAME_ORIENTED_STACK 20
+#endif
+
 #define MAX_PAYLOAD 1024  /* maximum payload size*/
 
 /* Definitions thare are ordinarily in <arpa/nameser.h>
