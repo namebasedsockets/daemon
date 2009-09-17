@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -211,8 +212,9 @@ struct register_data
 static void *register_thread(void *arg)
 {
 	struct register_data *data = arg;
-	int len, err;
+	int len, msg_len, name_len, err;
 	struct nlmsghdr *nlh = NULL;
+	char registered_name[MAX_NAME_LEN];
 
 	printf("registering %s (seq %d)\n", data->name, data->seq);
 	res_init();
@@ -230,17 +232,30 @@ static void *register_thread(void *arg)
 		host[dot - data->name] = 0;
 		printf("fully-qualified name %s in domain %s\n", host, dot + 1);
 		/* FIXME: actually register name, wait for response */
+		strcpy(registered_name, data->name);
 		err = 0;
 	}
 	else
 	{
 		printf("unqualified name %s, registering in domain %s\n",
 		       data->name, _res.defdname);
-		/* FIXME: actually register name, wait for response */
-		err = 0;
+		if (strlen(data->name) + strlen(_res.defdname) + 1 <
+		    MAX_NAME_LEN)
+		{
+			/* FIXME: actually register name, wait for response */
+			sprintf(registered_name, "%s.%s", data->name,
+				_res.defdname);
+			err = 0;
+		}
+		else
+			err = ENAMETOOLONG;
 	}
 
-	nlh = malloc(NLMSG_SPACE(sizeof(int)));
+	msg_len = 2 * sizeof(int);
+	name_len = strlen(registered_name);
+	if (!err)
+		msg_len += name_len;
+	nlh = malloc(NLMSG_SPACE(msg_len));
 	if (nlh)
 	{
 		struct sockaddr_nl dest_addr;
@@ -251,12 +266,26 @@ static void *register_thread(void *arg)
 		memset(&dest_addr, 0, sizeof(dest_addr));
 		dest_addr.nl_family = AF_NETLINK;
 
-		nlh->nlmsg_len = NLMSG_SPACE(sizeof(int));
+		nlh->nlmsg_len = NLMSG_SPACE(msg_len);
 		nlh->nlmsg_type = NAME_STACK_REGISTER_REPLY;
 		nlh->nlmsg_flags = 0;
 		nlh->nlmsg_seq = data->seq;
 		nlh->nlmsg_pid = 0;
 		memcpy(NLMSG_DATA(nlh), &err, sizeof(err));
+		if (!err)
+		{
+			memcpy(NLMSG_DATA(nlh) + sizeof(int), &name_len,
+			       sizeof(name_len));
+			memcpy(NLMSG_DATA(nlh) + 2 * sizeof(int),
+			       registered_name, name_len);
+		}
+		else
+		{
+			int zero = 0;
+
+			memcpy(NLMSG_DATA(nlh) + sizeof(int), &zero,
+			       sizeof(zero));
+		}
 
 		iov.iov_base = (void *)nlh;
 		iov.iov_len = nlh->nlmsg_len;
@@ -386,8 +415,8 @@ int main(int argc, const char *argv[])
 				break;
 			case NAME_STACK_REGISTER_QUERY:
 				do_register(nlh->nlmsg_seq,
-					 NLMSG_DATA(nlh),
-					 NLMSG_PAYLOAD(nlh, 0));
+					    NLMSG_DATA(nlh),
+					    NLMSG_PAYLOAD(nlh, 0));
 				break;
 			default:
 				fprintf(stderr, "unhandled msg type %d\n",
