@@ -1,16 +1,7 @@
 #include <stdlib.h>
-#include <android/log.h>
 #include <jni.h>
+#include "log.h"
 #include "daemon.h"
-
-#define ANDROID_LOG_TAG "namestack daemon"
-#define ANDROID_LOG(l, ...) __android_log_print((l), ANDROID_LOG_TAG, __VA_ARGS__)
-
-#define LOGV(x, ...) ANDROID_LOG(ANDROID_LOG_VERBOSE, x, __VA_ARGS__)
-#define LOGD(x, ...) ANDROID_LOG(ANDROID_LOG_DEBUG, x, __VA_ARGS__)
-#define LOGI(x, ...) ANDROID_LOG(ANDROID_LOG_INFO, x, __VA_ARGS__)
-#define LOGW(x, ...) ANDROID_LOG(ANDROID_LOG_WARN, x, __VA_ARGS__)
-#define LOGE(x, ...) ANDROID_LOG(ANDROID_LOG_ERROR, x, __VA_ARGS__)
 
 void
 Java_com_ericsson_namestackd_daemon_Run(JNIEnv *env, jobject obj)

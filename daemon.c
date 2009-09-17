@@ -13,6 +13,7 @@
 #include <string.h>
 #include <poll.h>
 #include "dns.h"
+#include "log.h"
 #include "namestacknl.h"
 
 #ifndef NETLINK_NAME_ORIENTED_STACK
@@ -49,9 +50,9 @@ static void print_a(const u_char *ptr, uint16_t rdlength,
  const u_char *start, uint16_t len, char *buf)
 {
     if (rdlength != sizeof(uint32_t))
-        fprintf(stderr, "address record has invalid length %d\n", rdlength);
-     else if (ptr + rdlength - start > len)
-         fprintf(stderr, "address record overflows buffer\n");
+        LOGW("address record has invalid length %d\n", rdlength);
+    else if (ptr + rdlength - start > len)
+        LOGW("%s", "address record overflows buffer\n");
     else
     {
         char *p = buf;
@@ -86,9 +87,9 @@ static void print_aaaa(const u_char *ptr, uint16_t rdlength,
  const u_char *start, uint16_t len, char *buf)
 {
     if (rdlength != sizeof(struct in6_addr))
-        fprintf(stderr, "address record has invalid length %d\n", rdlength);
-     else if (ptr + rdlength - start > len)
-         fprintf(stderr, "address record overflows buffer\n");
+        LOGW("address record has invalid length %d\n", rdlength);
+    else if (ptr + rdlength - start > len)
+        LOGW("%s", "address record overflows buffer\n");
     else
     {
         char *p = buf;
@@ -135,7 +136,7 @@ static void *query_thread(void *arg)
 	uint16_t rdlength;
 	const u_char *rdata;
 
-	printf("querying %s (seq %d)\n", data->name, data->seq);
+	LOGI("querying %s (seq %d)\n", data->name, data->seq);
 	len = res_query(data->name, C_IN, T_AAAA, buf, sizeof(buf));
 	if (len >= 0)
 	{
@@ -146,7 +147,7 @@ static void *query_thread(void *arg)
 			char addrbuf[46];
 
 			print_aaaa(rdata, rdlength, buf, len, addrbuf);
-			printf("found a valid IPv6 address %s\n", addrbuf);
+			LOGI("found a valid IPv6 address %s\n", addrbuf);
 		}
 	}
 	if (!found_response)
@@ -162,13 +163,13 @@ static void *query_thread(void *arg)
 				char addrbuf[16];
 
 				print_a(rdata, rdlength, buf, len, addrbuf);
-				printf("found a valid IPv4 address %s\n",
-				       addrbuf);
+				LOGI("found a valid IPv4 address %s\n",
+				     addrbuf);
 			}
 		}
 	}
 	if (!found_response)
-		printf("couldn't resolve %s: %d\n", data->name, h_errno);
+		LOGW("couldn't resolve %s: %d\n", data->name, h_errno);
 
 	msg_len = sizeof(int);
 	if (len > 0)
@@ -211,7 +212,7 @@ static void do_query(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
 
-	printf("got a query request with seq %d for %s (%d)\n", seq, data, len);
+	LOGI("got a query request with seq %d for %s (%d)\n", seq, data, len);
 	/* Sanity-check the name */
 	if (len <= MAX_NAME_LEN)
 	{
@@ -232,20 +233,22 @@ static void do_query(unsigned int seq, const char *data, size_t len)
 				if (pthread_create(&thread_id, NULL,
 				    query_thread, qdata))
 				{
-					fprintf(stderr,
-						"thread creation failed, can't resolve name\n");
+					LOGW("%s",
+                                             "thread creation failed, can't resolve name\n");
 					free(qdata);
 				}
 			}
 			else
-				fprintf(stderr, "alloc failed, can't resolve name\n");
+				LOGW("%s",
+                                     "alloc failed, can't resolve name\n");
 		}
 		else
-			fprintf(stderr, "query has unterminated name\n");
+			LOGW("%s",
+                             "query has unterminated name\n");
 	}
 	else
-		fprintf(stderr, "query has invalid name length %d\n",
-			len);
+		LOGW("%s",
+                     "query has invalid name length %d\n", len);
 }
 
 static void send_qualify_response(unsigned int seq, const char *registered_name)
@@ -253,7 +256,7 @@ static void send_qualify_response(unsigned int seq, const char *registered_name)
 	int msg_len, name_len;
 	struct nlmsghdr *nlh = NULL;
 
-	printf("qualified as %s\n", registered_name);
+	LOGI("qualified as %s\n", registered_name);
 	name_len = strlen(registered_name);
 	msg_len = sizeof(int) + name_len;
 	nlh = malloc(NLMSG_SPACE(msg_len));
@@ -285,7 +288,7 @@ static void send_qualify_response(unsigned int seq, const char *registered_name)
 		msg.msg_iovlen = 1;
 
 		err = sendmsg(sock_fd, &msg, 0);
-		printf("sendmsg returned %d\n", err);
+		LOGW("sendmsg returned %d\n", err);
 
 		free(nlh);
 	}
@@ -296,7 +299,7 @@ static const char *get_current_domain(void)
 #ifndef ANDROID
 	return _res.defdname;
 #else
-	fprintf(stderr, "getting current domain unimplemented!\n");
+	LOGW("%s", "getting current domain unimplemented!\n");
 	return NULL;
 #endif
 }
@@ -305,7 +308,7 @@ static void do_qualify(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
 
-	printf("qualifying %s\n", data);
+	LOGI("qualifying %s\n", data);
 	/* Sanity-check the name */
 	if (len < MAX_NAME_LEN)
 	{
@@ -329,8 +332,8 @@ static void do_qualify(unsigned int seq, const char *data, size_t len)
 				const char *domain = get_current_domain();
 
 				if (!domain)
-					fprintf(stderr,
-						"no current domain, unable to qualify\n");
+					LOGE("%s",
+					     "no current domain, unable to qualify\n");
 				else if (strlen(name) + strlen(domain) + 1 <
 				    MAX_NAME_LEN)
 				{
@@ -341,15 +344,14 @@ static void do_qualify(unsigned int seq, const char *data, size_t len)
 					send_qualify_response(seq, full_name);
 				}
 				else
-					fprintf(stderr, "name too long\n");
+					LOGW("%s", "name too long\n");
 			}
 		}
 		else
-			fprintf(stderr, "query has unterminated name\n");
+			LOGW("%s", "query has unterminated name\n");
 	}
 	else
-		fprintf(stderr, "query has invalid name length %d\n",
-			len);
+		LOGW("query has invalid name length %d\n", len);
 }
 
 struct register_data
@@ -369,8 +371,8 @@ static void *register_thread(void *arg)
 	struct nlmsghdr *nlh = NULL;
 	char registered_name[MAX_NAME_LEN];
 
-	printf("registering %s (seq %d)\n", data->name, data->seq);
-	printf("%d IPv6 addresses:\n", data->num_v6_addresses);
+	LOGI("registering %s (seq %d)\n", data->name, data->seq);
+	LOGI("%d IPv6 addresses:\n", data->num_v6_addresses);
 	for (i = 0; i < data->num_v6_addresses; i++)
 	{
 		char addrbuf[46];
@@ -380,9 +382,9 @@ static void *register_thread(void *arg)
 			   (const u_char *)data->v6_addresses,
 			   data->num_v6_addresses * sizeof(data->v6_addresses[i]),
 			   addrbuf);
-		printf("%s\n", addrbuf);
+		LOGI("%s\n", addrbuf);
 	}
-	printf("%d IPv4 addresses:\n", data->num_v4_addresses);
+	LOGI("%d IPv4 addresses:\n", data->num_v4_addresses);
 	for (i = 0; i < data->num_v4_addresses; i++)
 	{
 		char addrbuf[16];
@@ -392,7 +394,7 @@ static void *register_thread(void *arg)
 			(const u_char *)data->v4_addresses,
 			data->num_v4_addresses * sizeof(data->v4_addresses[i]),
 			addrbuf);
-		printf("%s\n", addrbuf);
+		LOGI("%s\n", addrbuf);
 	}
 	res_init();
 	len = strlen(data->name);
@@ -407,7 +409,7 @@ static void *register_thread(void *arg)
 		/* dot is guaranteed not to be NULL */
 		memcpy(host, data->name, dot - data->name);
 		host[dot - data->name] = 0;
-		printf("fully-qualified name %s in domain %s\n", host, dot + 1);
+		LOGI("fully-qualified name %s in domain %s\n", host, dot + 1);
 		/* FIXME: actually register name, wait for response */
 		strcpy(registered_name, data->name);
 		err = 0;
@@ -418,14 +420,14 @@ static void *register_thread(void *arg)
 
 		if (!domain)
 		{
-			fprintf(stderr,
-				"no current domain, unable to register\n");
+			LOGE("%s",
+			     "no current domain, unable to register\n");
 			err = EADDRNOTAVAIL;
 		}
 		else
 		{
-			printf("unqualified name %s, registering in domain %s\n",
-			       data->name, domain);
+			LOGI("unqualified name %s, registering in domain %s\n",
+			     data->name, domain);
 			if (strlen(data->name) + strlen(domain) + 1 <
 			    MAX_NAME_LEN)
 			{
@@ -499,8 +501,8 @@ static void do_register(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
 
-	printf("got a register request with seq %d for %s (%d)\n", seq, data,
-	       len);
+	LOGI("got a register request with seq %d for %s (%d)\n", seq, data,
+	     len);
 	/* Sanity-check the name */
 	if (len <= MAX_NAME_LEN)
 	{
@@ -529,8 +531,8 @@ static void do_register(unsigned int seq, const char *data, size_t len)
  						sizeof(struct in6_addr));
  					if (!qdata->v6_addresses) {
  						free(qdata);
- 						fprintf(stderr,
- 							"memory allocation failure, can't register name\n");
+ 						LOGW("%s",
+                                                     "memory allocation failure, can't register name\n");
  						goto nak;
  					}
  					memcpy(qdata->v6_addresses, ptr,
@@ -552,8 +554,8 @@ static void do_register(unsigned int seq, const char *data, size_t len)
  						if (qdata->v6_addresses)
  							free(qdata->v6_addresses);
  						free(qdata);
- 						fprintf(stderr,
- 							"memory allocation failure, can't register name\n");
+ 						LOGW("%s",
+                                                     "memory allocation failure, can't register name\n");
  						goto nak;
  					}
  					memcpy(qdata->v4_addresses, ptr,
@@ -565,28 +567,29 @@ static void do_register(unsigned int seq, const char *data, size_t len)
 				if (pthread_create(&thread_id, NULL,
 				    register_thread, qdata))
 				{
-					fprintf(stderr,
-						"thread creation failed, can't resolve name\n");
+					LOGW("%s",
+                                             "thread creation failed, can't resolve name\n");
 					free(qdata);
 					goto nak;
 				}
 			}
 			else
 			{
-				fprintf(stderr, "alloc failed, can't resolve name\n");
+				LOGW("%s",
+                                     "alloc failed, can't resolve name\n");
 				goto nak;
 			}
 		}
 		else
 		{
-			fprintf(stderr, "query has unterminated name\n");
+			LOGW("%s",
+                             "query has unterminated name\n");
 			goto nak;
 		}
 	}
 	else
 	{
-		fprintf(stderr, "query has invalid name length %d\n",
-			len);
+		LOGW("query has invalid name length %d\n", len);
 		goto nak;
 	}
 	return;
@@ -601,7 +604,7 @@ static void *delete_registration_thread(void *arg)
 	char *name = arg;
 	int len;
 
-	printf("deleting registration for %s\n", name);
+	LOGI("deleting registration for %s\n", name);
 	res_init();
 	len = strlen(name);
 	/* len is guaranteed to be <= MAX_NAME_LEN, see do_delete_registration
@@ -616,7 +619,7 @@ static void *delete_registration_thread(void *arg)
 		/* dot is guaranteed not to be NULL */
 		memcpy(host, name, dot - name);
 		host[dot - name] = 0;
-		printf("fully-qualified name %s in domain %s\n", host, dot + 1);
+		LOGI("fully-qualified name %s in domain %s\n", host, dot + 1);
 		/* FIXME: actually delete the name registration */
 	}
 	else
@@ -625,8 +628,8 @@ static void *delete_registration_thread(void *arg)
 
 		if (domain)
 		{
-			printf("unqualified name %s, deleting from domain %s\n",
-			       name, domain);
+			LOGI("unqualified name %s, deleting from domain %s\n",
+			     name, domain);
 			if (strlen(name) + strlen(domain) + 1 < MAX_NAME_LEN)
 			{
 				/* FIXME: actually delete the name registration
@@ -643,8 +646,8 @@ static void do_delete_registration(unsigned int seq, const char *data,
 {
 	size_t measured_len;
 
-	printf("got a register request with seq %d for %s (%d)\n", seq, data,
-	       len);
+	LOGI("got a register request with seq %d for %s (%d)\n", seq, data,
+	     len);
 	/* Sanity-check the name */
 	if (len <= MAX_NAME_LEN)
 	{
@@ -663,20 +666,22 @@ static void do_delete_registration(unsigned int seq, const char *data,
 				if (pthread_create(&thread_id, NULL,
 				    delete_registration_thread, name))
 				{
-					fprintf(stderr,
-						"thread creation failed, can't resolve name\n");
+					LOGW("%s",
+                                             "thread creation failed, can't resolve name\n");
 					free(name);
 				}
 			}
 			else
-				fprintf(stderr, "alloc failed, can't resolve name\n");
+				LOGW("%s",
+                                     "alloc failed, can't resolve name\n");
 		}
 		else
-			fprintf(stderr, "query has unterminated name\n");
+			LOGW("%s",
+                             "query has unterminated name\n");
 	}
 	else
-		fprintf(stderr, "query has invalid name length %d\n",
-			len);
+		LOGW("%s",
+                     "query has invalid name length %d\n", len);
 	return;
 }
 
@@ -722,7 +727,7 @@ int run_daemon(void)
 		memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
 		recvmsg(sock_fd, &msg, 0);
 		/* FIXME: check that it's a reply */
-		printf("Received registration reply\n");
+		LOGI("%s", "Received registration reply\n");
 
 		memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
 		pfd.fd = sock_fd;
@@ -752,8 +757,8 @@ int run_daemon(void)
 						       NLMSG_PAYLOAD(nlh, 0));
 				break;
 			default:
-				fprintf(stderr, "unhandled msg type %d\n",
-					nlh->nlmsg_type);
+				LOGW("unhandled msg type %d\n",
+				     nlh->nlmsg_type);
 			}
 			memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
 		}
