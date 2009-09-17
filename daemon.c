@@ -42,8 +42,11 @@ int sock_fd;
 
 #define MAX_NAME_LEN 254
 
+/* Prints the address in rdata to buf, which must be at least 16 bytes in
+ * size.
+ */
 static void print_a(const u_char *ptr, uint16_t rdlength,
- const u_char *start, uint16_t len)
+ const u_char *start, uint16_t len, char *buf)
 {
     if (rdlength != sizeof(uint32_t))
         fprintf(stderr, "address record has invalid length %d\n", rdlength);
@@ -51,6 +54,7 @@ static void print_a(const u_char *ptr, uint16_t rdlength,
          fprintf(stderr, "address record overflows buffer\n");
     else
     {
+        char *p = buf;
         uint32_t addr = *(uint32_t *)ptr;
         u_char *addrp;
 
@@ -59,9 +63,14 @@ static void print_a(const u_char *ptr, uint16_t rdlength,
          addrp++)
         {
             if (addrp == (u_char *)&addr + sizeof(uint32_t) - 1)
-                printf("%d\n", *addrp);
+                sprintf(p, "%d\n", *addrp);
             else
-                printf("%d.", *addrp);
+            {
+                int n;
+
+                sprintf(p, "%d.%n", *addrp, &n);
+                p += n;
+            }
         }
     }
 }
@@ -139,8 +148,11 @@ static void *query_thread(void *arg)
 							      &rdata);
 			if (found_response)
 			{
-				printf("found a valid IPv4 address\n");
-				print_a(rdata, rdlength, buf, len);
+				char addrbuf[16];
+
+				print_a(rdata, rdlength, buf, len, addrbuf);
+				printf("found a valid IPv4 address %s\n",
+				       addrbuf);
 			}
 		}
 	}
@@ -355,10 +367,16 @@ static void *register_thread(void *arg)
 			   data->num_v6_addresses * sizeof(data->v6_addresses[i]));
 	printf("%d IPv4 addresses:\n", data->num_v4_addresses);
 	for (i = 0; i < data->num_v4_addresses; i++)
+	{
+		char addrbuf[16];
+
 		print_a((const u_char *)&data->v4_addresses[i],
 			sizeof(data->v4_addresses[i]),
 			(const u_char *)data->v4_addresses,
-			data->num_v4_addresses * sizeof(data->v4_addresses[i]));
+			data->num_v4_addresses * sizeof(data->v4_addresses[i]),
+			addrbuf);
+		printf("%s\n", addrbuf);
+	}
 	res_init();
 	len = strlen(data->name);
 	/* len is guaranteed to be <= MAX_NAME_LEN, see do_register */
