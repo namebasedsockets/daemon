@@ -765,5 +765,7 @@ int run_daemon(void)
 		/* Close Netlink Socket */
 		close(sock_fd);
 	}
+        else
+		LOGE("socket failed: %s (%d)\n", strerror(errno), errno);
 	return 0;
 }
