@@ -6,6 +6,10 @@
 #include <string.h> /* NULL */
 #define BIND_8_COMPAT
 #include <arpa/nameser.h>
+#ifdef ANDROID
+#include <endian.h>
+#include "nameser.h"
+#endif
 #endif /* __KERNEL__ */
 
 uint16_t advance_name(const u_char *ptr, const u_char *start, uint16_t len)
