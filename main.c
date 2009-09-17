@@ -358,6 +358,84 @@ nak:
 	return;
 }
 
+static void *delete_registration_thread(void *arg)
+{
+	char *name = arg;
+	int len;
+
+	printf("deleting registration for %s\n", name);
+	res_init();
+	len = strlen(name);
+	/* len is guaranteed to be <= MAX_NAME_LEN, see do_delete_registration
+	 */
+	if (name[len - 1] == '.')
+	{
+		char host[MAX_NAME_LEN];
+		const char *dot;
+
+		/* Fully-qualified domain name, find domain */
+		dot = strchr(name, '.');
+		/* dot is guaranteed not to be NULL */
+		memcpy(host, name, dot - name);
+		host[dot - name] = 0;
+		printf("fully-qualified name %s in domain %s\n", host, dot + 1);
+		/* FIXME: actually delete the name registration */
+	}
+	else
+	{
+		printf("unqualified name %s, deleting from domain %s\n",
+		       name, _res.defdname);
+		if (strlen(name) + strlen(_res.defdname) + 1 < MAX_NAME_LEN)
+		{
+			/* FIXME: actually delete the name registration */
+		}
+	}
+
+	free(name);
+}
+
+static void do_delete_registration(unsigned int seq, const char *data,
+				   size_t len)
+{
+	size_t measured_len;
+
+	printf("got a register request with seq %d for %s (%d)\n", seq, data,
+	       len);
+	/* Sanity-check the name */
+	if (len <= MAX_NAME_LEN)
+	{
+		for (measured_len = 0; data[measured_len] && measured_len < len;
+		     measured_len++)
+			;
+		if (!data[measured_len])
+		{
+			char *name = malloc(measured_len);
+
+			if (name)
+			{
+				pthread_t thread_id;
+
+				memcpy(name, data, measured_len + 1);
+				if (pthread_create(&thread_id, NULL,
+				    delete_registration_thread, name))
+				{
+					fprintf(stderr,
+						"thread creation failed, can't resolve name\n");
+					free(name);
+				}
+			}
+			else
+				fprintf(stderr, "alloc failed, can't resolve name\n");
+		}
+		else
+			fprintf(stderr, "query has unterminated name\n");
+	}
+	else
+		fprintf(stderr, "query has invalid name length %d\n",
+			len);
+	return;
+}
+
 int main(int argc, const char *argv[])
 {
 	sock_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_NAME_ORIENTED_STACK);
@@ -417,6 +495,11 @@ int main(int argc, const char *argv[])
 				do_register(nlh->nlmsg_seq,
 					    NLMSG_DATA(nlh),
 					    NLMSG_PAYLOAD(nlh, 0));
+				break;
+			case NAME_STACK_REGISTER_DELETE:
+				do_delete_registration(nlh->nlmsg_seq,
+						       NLMSG_DATA(nlh),
+						       NLMSG_PAYLOAD(nlh, 0));
 				break;
 			default:
 				fprintf(stderr, "unhandled msg type %d\n",
