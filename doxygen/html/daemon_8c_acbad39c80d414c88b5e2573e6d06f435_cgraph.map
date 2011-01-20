@@ -1,0 +1,8 @@
+<map id="G" name="G">
+<area shape="rect" href="$daemon_8c.html#a37d3f738eb0688e592351cdbb350f1fc" title="query_thread" alt="" coords="128,59,224,88"/>
+<area shape="rect" href="$dns_8c.html#a593122bc343447440beb7ec60bd9f7b3" title="find_answer_of_type" alt="" coords="273,5,412,35"/>
+<area shape="rect" href="$daemon_8c.html#abf05f99522b5c186c4935c41edc9fc26" title="print_a" alt="" coords="313,59,372,88"/>
+<area shape="rect" href="$daemon_8c.html#a476bb8ced57802ace679a1acb65b415f" title="print_aaaa" alt="" coords="303,112,383,141"/>
+<area shape="rect" href="$dns_8c.html#ae4bfc05150ebb58e07281be1996f04ff" title="advance_name" alt="" coords="579,7,688,36"/>
+<area shape="rect" href="$dns_8c.html#a73e7d221ee0d7a7b3911d47dff001c42" title="parse_rr" alt="" coords="463,32,529,61"/>
+</map>

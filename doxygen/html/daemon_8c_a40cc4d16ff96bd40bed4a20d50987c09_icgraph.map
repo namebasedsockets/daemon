@@ -1,0 +1,10 @@
+<map id="G" name="G">
+<area shape="rect" href="$daemon_8c.html#af1f4f58afd76288c06d5a6d125fe4eb0" title="delete_registration_thread" alt="" coords="189,7,360,36"/>
+<area shape="rect" href="$daemon_8c.html#a797e3b021e09c2fdd288682c4dcbef81" title="do_qualify" alt="" coords="443,59,523,88"/>
+<area shape="rect" href="$daemon_8c.html#ac38edde8286b6bd2c35322115dcd69cf" title="register_thread" alt="" coords="221,111,328,140"/>
+<area shape="rect" href="$daemon_8c.html#a2141148550e3db9810196317348c71b9" title="do_delete_registration" alt="" coords="409,5,556,35"/>
+<area shape="rect" href="$daemon_8h.html#ab19694074221bcabda393e4812faaba3" title="run_daemon" alt="" coords="607,59,697,88"/>
+<area shape="rect" href="$_name_stack_daemon_8cpp.html#a64d0c0e34e1a52fe783accf8a1ebc5aa" title="Java_com_ericsson_namestackd_daemon_Run" alt="" coords="748,32,1044,61"/>
+<area shape="rect" href="$main_8c.html#ac0f2228420376f4db7e1274f2b41667c" title="main" alt="" coords="872,85,920,115"/>
+<area shape="rect" href="$daemon_8c.html#a4cce0f027dc3f3036b426414e35369ca" title="do_register" alt="" coords="440,112,525,141"/>
+</map>
