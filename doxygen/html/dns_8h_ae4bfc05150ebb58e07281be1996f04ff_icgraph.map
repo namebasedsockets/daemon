@@ -1,9 +1,0 @@
-<map id="G" name="G">
-<area shape="rect" href="$dns_8h.html#a593122bc343447440beb7ec60bd9f7b3" title="find_answer_of_type" alt="" coords="281,32,420,61"/>
-<area shape="rect" href="$dns_8h.html#a73e7d221ee0d7a7b3911d47dff001c42" title="parse_rr" alt="" coords="164,57,231,87"/>
-<area shape="rect" href="$daemon_8c.html#a37d3f738eb0688e592351cdbb350f1fc" title="query_thread" alt="" coords="469,32,565,61"/>
-<area shape="rect" href="$daemon_8c.html#acbad39c80d414c88b5e2573e6d06f435" title="do_query" alt="" coords="613,32,688,61"/>
-<area shape="rect" href="$daemon_8h.html#ab19694074221bcabda393e4812faaba3" title="run_daemon" alt="" coords="737,32,828,61"/>
-<area shape="rect" href="$_name_stack_daemon_8cpp.html#a64d0c0e34e1a52fe783accf8a1ebc5aa" title="Java_com_ericsson_namestackd_daemon_Run" alt="" coords="879,5,1175,35"/>
-<area shape="rect" href="$main_8c.html#ac0f2228420376f4db7e1274f2b41667c" title="main" alt="" coords="1003,59,1051,88"/>
-</map>
