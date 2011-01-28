@@ -39,6 +39,10 @@
 #define T_AAAA 28
 #endif
 
+#ifndef T_SRV
+#define T_SRV 33
+#endif
+
 int sock_fd;
 
 #define MAX_NAME_LEN 254
@@ -49,6 +53,7 @@ int sock_fd;
 static void print_a(const u_char *ptr, uint16_t rdlength,
  const u_char *start, uint16_t len, char *buf)
 {
+    LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
     if (rdlength != sizeof(uint32_t))
         LOGW("address record has invalid length %d\n", rdlength);
     else if (ptr + rdlength - start > len)
@@ -86,6 +91,7 @@ static void print_a(const u_char *ptr, uint16_t rdlength,
 static void print_aaaa(const u_char *ptr, uint16_t rdlength,
  const u_char *start, uint16_t len, char *buf)
 {
+    LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
     if (rdlength != sizeof(struct in6_addr))
         LOGW("address record has invalid length %d\n", rdlength);
     else if (ptr + rdlength - start > len)
@@ -136,6 +142,7 @@ static void *query_thread(void *arg)
 	uint16_t rdlength;
 	const u_char *rdata;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("querying %s (seq %d)\n", data->name, data->seq);
 
 	if (!(buf = malloc(PACKETSZ))) {
@@ -219,6 +226,7 @@ static void do_query(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("got a query request with seq %d for %s (%d)\n", seq, data, len);
 	/* Sanity-check the name */
 	if (len <= MAX_NAME_LEN)
@@ -263,6 +271,7 @@ static void send_qualify_response(unsigned int seq, const char *registered_name)
 	int msg_len, name_len;
 	struct nlmsghdr *nlh = NULL;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("qualified as %s\n", registered_name);
 	name_len = strlen(registered_name);
 	msg_len = sizeof(int) + name_len;
@@ -303,6 +312,7 @@ static void send_qualify_response(unsigned int seq, const char *registered_name)
 
 static const char *get_current_domain(void)
 {
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 #ifndef ANDROID
 	return _res.defdname;
 #else
@@ -315,6 +325,7 @@ static void do_qualify(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("qualifying %s\n", data);
 	/* Sanity-check the name */
 	if (len < MAX_NAME_LEN)
@@ -378,6 +389,7 @@ static void *register_thread(void *arg)
 	struct nlmsghdr *nlh = NULL;
 	char registered_name[MAX_NAME_LEN];
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("registering %s (seq %d)\n", data->name, data->seq);
 	LOGI("%d IPv6 addresses:\n", data->num_v6_addresses);
 	for (i = 0; i < data->num_v6_addresses; i++)
@@ -507,7 +519,7 @@ static void *register_thread(void *arg)
 static void do_register(unsigned int seq, const char *data, size_t len)
 {
 	size_t measured_len;
-
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("got a register request with seq %d for %s (%d)\n", seq, data,
 	     len);
 	/* Sanity-check the name */
@@ -611,6 +623,7 @@ static void *delete_registration_thread(void *arg)
 	char *name = arg;
 	int len;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("deleting registration for %s\n", name);
 	res_init();
 	len = strlen(name);
@@ -653,6 +666,7 @@ static void do_delete_registration(unsigned int seq, const char *data,
 {
 	size_t measured_len;
 
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	LOGI("got a register request with seq %d for %s (%d)\n", seq, data,
 	     len);
 	/* Sanity-check the name */
@@ -694,6 +708,7 @@ static void do_delete_registration(unsigned int seq, const char *data,
 
 int run_daemon(void)
 {
+	LOGD("%s:%d %s", __FILE__,__LINE__,__FUNCTION__);
 	res_init();
 	sock_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_NAME_ORIENTED_STACK);
 	if (sock_fd >= 0) {
