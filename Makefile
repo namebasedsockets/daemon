@@ -1,6 +1,6 @@
 TARGET := namestackd
 
-CFLAGS := -g -I../linux-2.6.27/include -I../namestackmod
+CFLAGS := -g -I../kernel/include -I../namestackmod
 
 C_SRCS := \
 	  daemon.c \
