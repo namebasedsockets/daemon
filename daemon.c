@@ -143,43 +143,21 @@ static void *query_thread(void *arg)
 		return NULL;
 	}
 	buflen = PACKETSZ;
-	len = res_query(data->name, C_IN, T_AAAA, buf, buflen);
+	
+	memset(buf, 0, buflen);
+	len = res_query(data->name, C_IN, T_ANY, buf, buflen);
+	
 	if (len >= 0)
-	{
-		found_response = !find_answer_of_type(buf, len, T_AAAA, 0,
+		found_response = !find_answer_of_type(buf, len, T_ANY, 0,
 						      &rdlength, &rdata);
-		if (found_response)
-		{
-			char addrbuf[46];
-
-			print_aaaa(rdata, rdlength, buf, len, addrbuf);
-			LOGI("found a valid IPv6 address %s\n", addrbuf);
-		}
-	}
-	if (!found_response)
-	{
-		len = res_query(data->name, C_IN, T_A, buf, buflen);
-		if (len >= 0)
-		{
-			found_response = !find_answer_of_type(buf, len, T_A, 0,
-							      &rdlength,
-							      &rdata);
-			if (found_response)
-			{
-				char addrbuf[16];
-
-				print_a(rdata, rdlength, buf, len, addrbuf);
-				LOGI("found a valid IPv4 address %s\n",
-				     addrbuf);
-			}
-		}
-	}
-	if (!found_response)
+						      
+	if (found_response)
 		LOGW("couldn't resolve %s: %d\n", data->name, h_errno);
 
 	msg_len = sizeof(int);
 	if (len > 0)
 		msg_len += len;
+		
 	nlh = malloc(NLMSG_SPACE(msg_len));
 	if (nlh)
 	{
